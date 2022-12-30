@@ -1,7 +1,7 @@
 # Write Genres
 # author: hypermodified
 # This python script loops through a directory, opens the origin file and maps tags to genres and styles and writes them to the vorbis GENRE and STYLE comments.
-# It uses a small standard set of genres but allows anything for styles.  It first checks a release and if the tags include a genre it assigns it and if not it uses the associated mapping csv file to assign a genre(s) based on the the existing tags. 
+# It uses a small standard set of genres but allows anything for styles.  It first checks a release and if the tags include a genre it assigns it and if not it uses the associated mapping csv file to assign a genre(s) based on the the existing tags.
 # It can assign more than one genre and more than one style. When it writes the vorbis comments it uses ; to seperate values in comment.
 # It uses the release type of soundtrack to assign soundtrack as a genre.  It will also log any albums that it can't assign a genre to or are missing genre tags altogeher.
 # This has only been tested to work with flac files.
@@ -18,13 +18,13 @@ import ruamel.yaml  # Imports the ruamel fork of yaml
 import shutil  # Imports functionality that lets you copy files and directory
 import datetime  # Imports functionality that lets you make timestamps
 import mutagen  # Imports functionality to get metadata from music files
-import csv # Imports functionality to parse CSV files
+import csv  # Imports functionality to parse CSV files
 
 
 #  Set your directories here
 album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
-genre_map_list = "M:\music-util\origin-scripts\Combine-Genres\genre-map.csv" # Set the location of the genre-map.csv file.
+genre_map_list = "M:\music-util\origin-scripts\Combine-Genres\genre-map.csv"  # Set the location of the genre-map.csv file.
 
 # Set whether you are using nested folders or have all albums in one directory here
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
@@ -212,8 +212,9 @@ def check_file(directory):
 # This function changes the emitter in the yaml dump to use ~ rather than null or blank
 def _represent_none(self, data):
     if len(self.represented_objects) == 0 and not self.serializer.use_explicit_start:
-        return self.represent_scalar('tag:yaml.org,2002:null', 'null')
-    return self.represent_scalar('tag:yaml.org,2002:null', "~")
+        return self.represent_scalar("tag:yaml.org,2002:null", "null")
+    return self.represent_scalar("tag:yaml.org,2002:null", "~")
+
 
 #  A function that gets the directory and then opens the origin file and extracts the needed variables
 def get_origin_genre(directory, origin_location, album_name):
@@ -234,14 +235,14 @@ def get_origin_genre(directory, origin_location, album_name):
         print("--The origin file location is valid.")
         # open the yaml
         try:
-            yaml = ruamel.yaml.YAML()  
+            yaml = ruamel.yaml.YAML()
             yaml.preserve_quotes = True
             yaml.allow_unicode = True
-            yaml.encoding="utf-8"
+            yaml.encoding = "utf-8"
             yaml.width = 4096
             with open(origin_location, encoding="utf-8") as f:
-                data = yaml.load(f)         
-                
+                data = yaml.load(f)
+
         except:
             print("--There was an issue parsing the yaml file and the metadata could not be accessed.")
             print("--Logged parse error. Redownload origin file.")
@@ -287,7 +288,8 @@ def get_origin_genre(directory, origin_location, album_name):
             log_outcomes(directory, log_name, log_message, log_list)
             origin_old += 1  # variable will increment every loop iteration
 
-#Change this to write
+
+# Change this to write
 # A function to get the vorbis genre, style and mood tags
 def get_vorbis_genre(directory, album_name):
 
@@ -348,6 +350,7 @@ def clean_string_null(string_to_clean):
             clean_track.append(i)
     clean_string = "".join(clean_track)
     return clean_string
+
 
 # probably delete this
 # A function to clean up and standardize the vorbis tags
@@ -443,6 +446,7 @@ def clean_genre(genre):
     cleaned_genre = [RED_alias(tag) for tag in genre_nospace]
     return cleaned_genre
 
+
 # change this to genre_map
 # A function to use RED alias tags to have consistency in genres
 def RED_alias(genre):
@@ -452,14 +456,15 @@ def RED_alias(genre):
     with open(RED_alias_list, encoding="utf-8") as f:
         reader = csv.reader(f)
         RED_list = list(tuple(line) for line in reader)
-    
+
     #  Loop through the list and replace any term with it's proper alias
     for i in RED_list:
         if genre == i[0]:
             genre = i[1]
             print("--Standardized with RED alias")
-   
+
     return genre
+
 
 # probably delete this
 # A function to compare and merge the vorbis and origin genre tags
@@ -468,7 +473,7 @@ def merge_genres(genre_vorbis, genre_origin, album_name):
     print("--Origin tags found.")
     print(genre_vorbis)
     print(genre_origin)
-    
+
     # Set a flag to check whether the origin genre is updated
     diff_flag = False
 
@@ -480,41 +485,43 @@ def merge_genres(genre_vorbis, genre_origin, album_name):
             # print(f"--Adding {i} to the genre tags in origin file")
             genre_origin.append(i)
             diff_flag = True
-            
+
     # print("--The vorbis and origin tags have been cleaned and combined.")
     print(genre_origin)
     return genre_origin, diff_flag
 
-# write the full genre list back to the origin file 
-def write_origin(all_genres, origin_location):    
+
+# write the full genre list back to the origin file
+def write_origin(all_genres, origin_location):
     global count
 
     # Turn genre list into a string
     genre_string = ", ".join(all_genres)
-    
-    #Load custom representer and yaml config
+
+    # Load custom representer and yaml config
     ruamel.yaml.representer.RoundTripRepresenter.add_representer(type(None), _represent_none)
     yaml = ruamel.yaml.YAML()
     yaml.preserve_quotes = True
     yaml.allow_unicode = True
-    yaml.encoding="utf-8"
+    yaml.encoding = "utf-8"
     yaml.width = 4096
-    
+
     # Open origin.yaml file
     with open(origin_location, encoding="utf-8") as f:
         data = yaml.load(f)
         print("--Opened yaml")
-    
-    # Update origin.yaml key value for tags  
-    data['Tags'] = genre_string
+
+    # Update origin.yaml key value for tags
+    data["Tags"] = genre_string
     print("--Updated yaml")
-    
+
     # Write new origin.yaml file
     with open(origin_location, "w", encoding="utf-8") as f:
         yaml.dump(data, f)
         print("--Wrote yaml")
         print("Genre tags have been merged successfully.")
         count += 1  # variable will increment every loop iteration
+
 
 # The main function that controls the flow of the script
 def main():
@@ -552,7 +559,7 @@ def main():
                 # Make a list of genres
                 # Make a list of styles
                 # Write genre and style to vorbis
-                '''
+                """
                 # check if vorbis tag for genre is populated
                 genre_vorbis = get_vorbis_genre(i, album_name)
                 if genre_vorbis != None:
@@ -573,7 +580,7 @@ def main():
                             print("No new genre tags to add to origin genre")
                 else:
                     print("No genre tag.")
-                '''    
+                """
             else:
                 print("No flac files.")
 
