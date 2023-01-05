@@ -20,6 +20,7 @@ import datetime  # Imports functionality that lets you make timestamps
 import mutagen  # Imports functionality to get metadata from music files
 import csv  # Imports functionality to parse CSV files
 import re  # Imports functionality to use regular expressions
+import string #  Imports functionality to manipulate strings
 
 
 #  Set your directories here
@@ -44,6 +45,7 @@ origin_old = 0
 missing_origin_genre = 0
 missing_genre = 0
 missing_tags = 0
+track_count = 0
 
 # identifies album directory level
 path_segments = album_directory.split(os.sep)
@@ -93,9 +95,10 @@ def summary_text():
     global good_missing
     global origin_old
     global missing_origin_genre
+    global track_count
 
     print("")
-    print(f"This script wrote tags for {count} albums out of {total_count} albums.")
+    print(f"This script wrote tags for {track_count} tracks on {count} albums out of {total_count} albums.")
     print("This script looks for potential missing files or errors. The following messages outline whether any were found.")
 
     error_status = error_exists(parse_error)
@@ -420,7 +423,6 @@ def remove_genre(genre_origin, diff_flag):
 
 # A function to write the full genre list back to the origin file
 def write_origin(all_genres, origin_location):
-    global count
 
     # Turn genre list into a string
     genre_string = ", ".join(all_genres)
@@ -448,7 +450,6 @@ def write_origin(all_genres, origin_location):
         print("--Wrote yaml")
         print("Genre tags have been merged successfully.")
         # move the count to writing the tags later
-        count += 1  # variable will increment every loop iteration
 
 
 # A function to break the genres into lists of seperate genres and styles
@@ -490,54 +491,55 @@ def seperate_genres(genre_origin):
     return final_genre, final_style
 
 
-# Change this to write
-# A function to get the vorbis genre, style and mood tags
-def get_vorbis_genre(directory, album_name):
+# A function to write the vorbis genre and style comments
+def write_tags(directory, genre, style, album_name):
+    global count
+    global track_count
 
-    print("--Checking for genre, style and mood tags.")
+    print("--Retagging files.")
 
-    # Open track in directory and see if genre tag is populated
-    for fname in os.listdir(directory):
-        if fname.endswith(".flac"):
-            missing_count = 0
-            genre = []
-            tag_metadata = mutagen.File(fname)
-            if "GENRE" in tag_metadata:
-                print("--Genre tag found.")
-                genre.extend(tag_metadata["GENRE"])
-                print(genre)
-            else:
-                print("--No genre tag.")
-                missing_count += 1
-            if "STYLE" in tag_metadata:
-                print("--Style tag found.")
-                genre.extend(tag_metadata["STYLE"])
-                print(tag_metadata["STYLE"])
-            else:
-                print("--No style tag.")
-                missing_count += 1
-            if "MOOD" in tag_metadata:
-                print("--Mood tag found.")
-                genre.extend(tag_metadata["MOOD"])
-                print(tag_metadata["MOOD"])
-            else:
-                print("--No mood tag.")
-                missing_count += 1
+    # Turn the genre and style lists into strings with semi-colons seperating the values and re-format them
+    genre_string = "; ".join(genre)
+    genre_string = genre_string.replace(".", " ")
+    genre_string = string.capwords(genre_string, sep = None)
+    
+    style_string = "; ".join(style)
+    style_string = style_string.replace(".", " ")
+    style_string = string.capwords(style_string, sep = None)
 
-            if missing_count == 3:
-                print("No vorbis tags found.")
-                break
-            else:
-                print("--Combined genre, style and mood tags.")
-                print(genre)
-                # Clean and standardize the genre
-                cleaned_genre = clean_genre(genre)
-                # this is for the output and nothing else.
-                print("--Cleaned tags.")
-                print(cleaned_genre)
-                genre_list = ", ".join(cleaned_genre)
-                # print (f" The genre tag is {genre_list}.")
-                return cleaned_genre
+    # Clear the list so the log captures just this albums tracks
+    retag_list = []
+
+    if genre != None:
+        # Loop through the directory and rename flac files
+        for fname in os.listdir(directory):
+            if fname.endswith(".flac"):
+                tag_metadata = mutagen.File(fname)
+                print(f"--Track Name: {fname}")
+                # log track that was retagged
+                retag_list.append(f"--Track Name: {fname}")
+                #  retag the metadata
+                if genre != []:
+                    tag_metadata["GENRE"] = genre_string
+                if style != []:
+                    tag_metadata["STYLE"] = style_string
+                tag_metadata.save()
+                track_count += 1  # variable will increment every loop iteration
+        count += 1  # variable will increment every loop iteration
+    else:
+        print(f"Origin metadata unexpectedly missing.")
+
+    # figure out how many tracks were renamed
+    tracks_retagged = len(retag_list)
+    if tracks_retagged != 0:
+        print(f"--Tracks Retagged: {tracks_retagged}")
+    else:
+        print(f"--There were no flac in this folder.")
+    # log the album the name change
+    log_name = "files_retagged"
+    log_message = f"had {tracks_retagged} files retagged"
+    log_list = retag_list
+    log_outcomes(directory, log_name, log_message, log_list)
 
 
 # The main function that controls the flow of the script
@@ -591,6 +593,7 @@ def main():
                     # Make one list of genres and one of styles
                     genre, style = seperate_genres(genre_origin)
                     # Write genre and style to vorbis
+                    write_tags(i, genre, style, album_name)
                     print(genre_origin)
 
                 # Log missing genres
