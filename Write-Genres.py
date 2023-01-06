@@ -20,11 +20,11 @@ import datetime  # Imports functionality that lets you make timestamps
 import mutagen  # Imports functionality to get metadata from music files
 import csv  # Imports functionality to parse CSV files
 import re  # Imports functionality to use regular expressions
-import string #  Imports functionality to manipulate strings
+import string  #  Imports functionality to manipulate strings
 
 
 #  Set your directories here
-album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
+album_directory = "M:\PROCESS"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
 genre_map_list = "M:\music-util\origin-scripts\Write-Genres\genre-map.csv"  # Set the location of the genre-map.csv file.
 
@@ -46,6 +46,7 @@ missing_origin_genre = 0
 missing_genre = 0
 missing_tags = 0
 track_count = 0
+missing_final_genre = 0
 
 # identifies album directory level
 path_segments = album_directory.split(os.sep)
@@ -96,6 +97,7 @@ def summary_text():
     global origin_old
     global missing_origin_genre
     global track_count
+    global missing_final_genre
 
     print("")
     print(f"This script wrote tags for {track_count} tracks on {count} albums out of {total_count} albums.")
@@ -109,6 +111,8 @@ def summary_text():
     print(f"--{error_status}: There were {bad_missing} folders missing an origin files that should have had them.")
     error_status = error_exists(missing_origin_genre)
     print(f"--{error_status}: There were {missing_origin_genre} folders missing genre tags in their origin files.")
+    error_status = error_exists(missing_final_genre)
+    print(f"--{error_status}: There were {missing_final_genre} albums where a genere tag could not be mapped and was missing. Fix these manually.")
     error_status = error_exists(good_missing)
     print(f"--Info: Some folders didn't have origin files and probably shouldn't have origin files. {good_missing} of these folders were identified.")
 
@@ -260,12 +264,14 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
         # check to see if the origin file has the corect metadata
         if "Cover" in data.keys():
             print("--You are using the correct version of gazelle-origin.")
+            print("--Origin tags found.")
 
             # turn the data into variable
             origin_genre = data["Tags"]
             release_type = data["Release type"]
 
             if origin_genre != None:
+                print(f"--Origin genre tags are -> {origin_genre}")
                 # remove spaces in comma delimited string
                 origin_genre = origin_genre.replace(" ", "")
                 # turn string into list
@@ -321,10 +327,16 @@ def map_genre_reg(genre_origin, diff_flag):
         ("metal", ".metal$"),
         ("rock", ".rock$"),
         ("jazz", ".jazz$"),
+        ("country", ".country$"),
+        ("classical", ".classical$"),
+        ("hip.hop", "hip.hop$"),
+        ("hip.hop", ".rap$"),
+        ("punk.ska", ".punk$"),
+        ("punk.ska", ".ska$"),
     ]
 
     # A list of genres that should be skipped in the regex mapping
-    skip_list = ["post.rock", "future.jazz", "acid.jazz", "nu.jazz", "hair.metal"]
+    skip_list = ["post.rock", "future.jazz", "acid.jazz", "nu.jazz", "hair.metal", "electro.punk", "dance.punk", "post.punk", "contemporary.post.punk"]
 
     for j in reg_map:
         if j[0] not in genre_origin:
@@ -337,14 +349,6 @@ def map_genre_reg(genre_origin, diff_flag):
                         genre_origin.append(j[0])
                         diff_flag = True
                         print(f"--LOOK: Added {j[0]} to genre list because {i} was there.")
-
-    """if "electronic" not in genre_origin:
-        for i in genre_origin:
-            match = re.search(".house$", i)
-            if match:
-                genre_origin.append("electronic")
-                diff_flag = True
-                print(f"--LOOK: Added electronic to genre list because {i} was there. ")"""
 
     #  turn list into set to get rid of duplicates
     genre_origin = set(genre_origin)
@@ -381,15 +385,17 @@ def map_genre_list(genre_origin, diff_flag):
 # A function to add soundtrack to list of genres in origin file list
 def merge_soundtrack(genre_origin, release_type, diff_flag):
 
-    print("--Origin tags found.")
+    print(f"--Checking release type.")
     print(f"--This is a {release_type}")
-    print(genre_origin)
 
     if release_type == "Soundtrack":
         release_type = "soundtrack"
         if genre_origin == None:
             genre_origin = [release_type]
             print(f"--Adding Soundtrack to the genre tags in origin file")
+            genre_origin_string = ", ".join(genre_origin)
+            print(f"-Origin genre tags are -> {genre_origin_string}")
+            diff_flag = True
         else:
             if release_type in genre_origin:
                 pass
@@ -397,10 +403,10 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
             else:
                 print(f"--Adding soundtrack to the genre tags in origin file")
                 genre_origin.append(release_type)
+                genre_origin_string = ", ".join(genre_origin)
+                print(f"--Origin genre tags are -> {genre_origin_string}")
                 diff_flag = True
 
-    # print("--The vorbis and origin tags have been cleaned and combined.")
-    print(genre_origin)
     return genre_origin, diff_flag
 
 
@@ -408,7 +414,7 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
 def remove_genre(genre_origin, diff_flag):
 
     # A list of genres that should be removed
-    remove_list = ["freely.available", "delete.this.tag"]
+    remove_list = ["freely.available", "delete.this.tag", "various.artists"]
 
     print("--Looking for genres to remove.")
     for i in genre_origin:
@@ -417,6 +423,8 @@ def remove_genre(genre_origin, diff_flag):
                 genre_origin.remove(j)
                 diff_flag = True
                 print(f"--Removed {j} from list of genres.")
+            else:
+                pass
 
     return genre_origin, diff_flag
 
@@ -448,15 +456,49 @@ def write_origin(all_genres, origin_location):
     with open(origin_location, "w", encoding="utf-8") as f:
         yaml.dump(data, f)
         print("--Wrote yaml")
-        print("Genre tags have been merged successfully.")
         # move the count to writing the tags later
 
 
+# A function to turn a list of genres into a nicely formated string
+def convert_string(genre_list, sep_char):
+
+    genre_list.sort()
+
+    if sep_char == ",":
+        genre_string = ", ".join(genre_list)
+    if sep_char == ";":
+        genre_string = "; ".join(genre_list)
+
+    genre_string = genre_string.replace(".", " ")
+    genre_string = string.capwords(genre_string, sep=None)
+    capital_styles = [
+        ("Idm", "IDM"),
+        ("Edm", "EDM"),
+        ("Ebm", "EBM"),
+        ("Dj", "DJ"),
+        ("DJent", "Djent"),
+        ("Uk Garage", "UK Garage"),
+        ("Uk Bass", "UK Bass"),
+        ("Hi Nrg", "Hi NRG"),
+        ("Mpb", "MPB"),
+    ]
+
+    # capitalize styles that should be
+    for i in capital_styles:
+        if i[0] in genre_string:
+            genre_string = genre_string.replace(i[0], i[1])
+
+    return genre_string
+
+
 # A function to break the genres into lists of seperate genres and styles
-def seperate_genres(genre_origin):
+def seperate_genres(genre_origin, directory):
+    global missing_final_genre
+
+    print("--Seperating genres into genres and styles.")
     total_genre = [
         "blues",
-        "childrens",
+        "childrens.music",
         "classical",
         "country",
         "electronic",
@@ -484,11 +526,25 @@ def seperate_genres(genre_origin):
         else:
             final_style.append(i)
 
-    print("Final Genres:")
-    print(final_genre)
-    print("Final Styles:")
-    print(final_style)
-    return final_genre, final_style
+    if final_genre != []:
+
+        sep_char = ","
+        final_genre_string = convert_string(final_genre, sep_char)
+        final_style_string = convert_string(final_style, sep_char)
+        print(f"Final Genres-> {final_genre_string}")
+        print(f"Final Styles-> {final_style_string}")
+
+        return final_genre, final_style
+
+    else:
+        print("--No genre could be mapped from the tags so no tags will be written to.")
+        log_name = "missing_final_genre"
+        log_message = "final genre tag not identified and missing"
+        log_list = None
+        log_outcomes(directory, log_name, log_message, log_list)
+        missing_final_genre += 1  # variable will increment every loop iteration
+
+        return final_genre, final_style
 
 
 # A function to write the vorbis genre and style comments
@@ -499,13 +555,9 @@ def write_tags(directory, genre, style, album_name):
     print("--Retagging files.")
 
     # Turn the genre and style lists into strings with semi-colons seperating the values and re-format them
-    genre_string = "; ".join(genre)
-    genre_string = genre_string.replace(".", " ")
-    genre_string = string.capwords(genre_string, sep = None)
-    
-    style_string = "; ".join(style)
-    style_string = style_string.replace(".", " ")
-    style_string = string.capwords(style_string, sep = None)
+    sep_char = ";"
+    genre_string = convert_string(genre, sep_char)
+    style_string = convert_string(style, sep_char)
 
     # Clear the list so the log captures just this albums tracks
     retag_list = []
@@ -515,14 +567,12 @@ def write_tags(directory, genre, style, album_name):
         for fname in os.listdir(directory):
             if fname.endswith(".flac"):
                 tag_metadata = mutagen.File(fname)
-                print(f"--Track Name: {fname}")
+                print(f"----Track Name: {fname}")
                 # log track that was retagged
                 retag_list.append(f"--Track Name: {fname}")
                 #  retag the metadata
-                if genre != []:
-                    tag_metadata["GENRE"] = genre_string
-                if style != []:
-                    tag_metadata["STYLE"] = style_string
+                tag_metadata["GENRE"] = genre_string
+                tag_metadata["STYLE"] = style_string
                 tag_metadata.save()
                 track_count += 1  # variable will increment every loop iteration
         count += 1  # variable will increment every loop iteration
@@ -578,7 +628,6 @@ def main():
                     print("There was no genre in the origin file.")
                     pass
                 else:
-                    print(genre_origin)
                     # Map tags and assign missing ones using regular expressions
                     genre_origin, diff_flag = map_genre_reg(genre_origin, diff_flag)
                     # Map tags and assign missing ones using a list
@@ -588,37 +637,22 @@ def main():
                     # Write tags to origin file if any are added
                     if diff_flag == True:
                         write_origin(genre_origin, origin_location)
+                        written_genre_string = ", ".join(genre_origin)
+                        print(f"--Final genres writen to origin file -> {written_genre_string}")
                     else:
                         print("--No new genre tags to add to origin genre")
                     # Make one list of genres and one of styles
-                    genre, style = seperate_genres(genre_origin)
-                    # Write genre and style to vorbis
-                    write_tags(i, genre, style, album_name)
-                    print(genre_origin)
+                    genre, style = seperate_genres(genre_origin, i)
+                    if genre != []:
+                        # Write genre and style to vorbis
+                        write_tags(i, genre, style, album_name)
+                        print("Genre and style tags written to album.")
+                    else:
+                        # Log missing genres
+                        print("This album did not have a genre that mapped to anything. Please check the log and manually fix it.")
 
-                # Log missing genres
-                """
-                # check if vorbis tag for genre is populated
-                genre_vorbis = get_vorbis_genre(i, album_name)
-                if genre_vorbis != None:
-                    # open orgin file
-                    genre_origin, release_type = get_origin_genre(i, origin_location, album_name)
-                    if genre_origin == None:
-                        pass
-                    elif genre_origin == "genre.missing":
-                        # if the origin file does not have a genre and the vorbis exists then write vorbis tag to origin
-                        write_origin(genre_vorbis, origin_location)
-                    else:     
-                        # merge the genre tags
-                        all_genres, diff_flag = merge_genres(genre_vorbis, genre_origin, album_name)
-                        # if there is an update write genre to tag key value pair
-                        if diff_flag == True:
-                            write_origin(all_genres, origin_location)
-                        else:
-                            print("No new genre tags to add to origin genre")
-                else:
-                    print("No genre tag.")
-                """
+                # Maybe move
+
             else:
                 print("No flac files.")
 
