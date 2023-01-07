@@ -32,7 +32,7 @@ genre_map_list = "M:\music-util\origin-scripts\Write-Genres\genre-map.csv"  # Se
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 1
+album_depth = 2
 
 # Establishes the counters for completed albums and missing origin files
 count = 0
@@ -336,7 +336,7 @@ def map_genre_reg(genre_origin, diff_flag):
     ]
 
     # A list of genres that should be skipped in the regex mapping
-    skip_list = ["post.rock", "future.jazz", "acid.jazz", "nu.jazz", "hair.metal", "electro.punk", "dance.punk", "post.punk", "contemporary.post.punk"]
+    skip_list = ["post.rock", "future.jazz", "acid.jazz", "nu.jazz", "new.jazz", "hair.metal", "electro.punk", "dance.punk", "post.punk", "contemporary.post.punk"]
 
     for j in reg_map:
         if j[0] not in genre_origin:
@@ -513,7 +513,7 @@ def seperate_genres(genre_origin, directory):
         "post.rock",
         "punk.ska",
         "rock",
-        "rythym.and.blues",
+        "rhythm.and.blues",
         "soundtrack",
         "world.music",
     ]
