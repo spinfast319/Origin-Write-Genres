@@ -24,15 +24,23 @@ import string  #  Imports functionality to manipulate strings
 
 
 #  Set your directories here
-album_directory = "M:\PROCESS"  # Which directory do you want to start with?
+album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
+genre_sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missing genres to so you can manually fix them
 genre_map_list = "M:\music-util\origin-scripts\Write-Genres\genre-map.csv"  # Set the location of the genre-map.csv file.
 
 # Set whether you are using nested folders or have all albums in one directory here
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 2
+album_depth = 1
+
+# Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
+# If you want to move your albums set move_flag to True
+# If you do NOT want to move your albums set move_flag to False
+# The folders will be logged either way so you can always see which albums were missing final genre tags.
+move_flag = True
+move_list = []
 
 # Establishes the counters for completed albums and missing origin files
 count = 0
@@ -47,6 +55,7 @@ missing_genre = 0
 missing_tags = 0
 track_count = 0
 missing_final_genre = 0
+move_count = 0
 
 # identifies album directory level
 path_segments = album_directory.split(os.sep)
@@ -98,9 +107,12 @@ def summary_text():
     global missing_origin_genre
     global track_count
     global missing_final_genre
+    global move_count
 
     print("")
     print(f"This script wrote tags for {track_count} tracks on {count} albums out of {total_count} albums.")
+    if move_count != []:
+        print(f"The script moved {move_count} albums that were missing final genres so you can fix them manually.")
     print("This script looks for potential missing files or errors. The following messages outline whether any were found.")
 
     error_status = error_exists(parse_error)
@@ -239,6 +251,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
     # check to see the origin file location variable exists
     location_exists = os.path.exists(origin_location)
     origin_genre = []
+    original_date = None
 
     if location_exists == True:
         print("--The origin file location is valid.")
@@ -260,7 +273,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_list = None
             log_outcomes(directory, log_name, log_message, log_list)
             parse_error += 1  # variable will increment every loop iteration
-            return
+            return origin_genre, original_date, diff_flag
         # check to see if the origin file has the corect metadata
         if "Cover" in data.keys():
             print("--You are using the correct version of gazelle-origin.")
@@ -269,6 +282,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             # turn the data into variable
             origin_genre = data["Tags"]
             release_type = data["Release type"]
+            original_date = data["Original year"]
 
             if origin_genre != None:
                 print(f"--Origin genre tags are -> {origin_genre}")
@@ -278,7 +292,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                 origin_genre = origin_genre.split(",")
                 # add soundtrack to list of genres in origin file list
                 origin_genre, diff_flag = merge_soundtrack(origin_genre, release_type, diff_flag)
-                return origin_genre, diff_flag
+                return origin_genre, original_date, diff_flag
             else:
                 # log the missing genre tag information in origin file
                 print("--There are no genre tags in the origin file.")
@@ -294,7 +308,12 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                     pass
                 else:
                     origin_genre = "genre.missing"
-                return origin_genre, diff_flag
+                     # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
+                    if move_flag == True:
+                        move_location(directory)
+                    else:
+                        pass                   
+                return origin_genre, original_date, diff_flag
         else:
             print("--You need to update your origin files with more metadata.")
             print("--Switch to the gazelle-origin fork here: https://github.com/spinfast319/gazelle-origin")
@@ -307,9 +326,9 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_outcomes(directory, log_name, log_message, log_list)
             origin_genre = []
             origin_old += 1  # variable will increment every loop iteration
-            return origin_genre, diff_flag
+            return origin_genre, original_date, diff_flag
     else:
-        return origin_genre, diff_flag
+        return origin_genre, original_date, diff_flag
 
 
 # A function that adds a genre tag if one is missing and there is an associated style using regular expressions
@@ -332,11 +351,23 @@ def map_genre_reg(genre_origin, diff_flag):
         ("hip.hop", "hip.hop$"),
         ("hip.hop", ".rap$"),
         ("punk.ska", ".punk$"),
-        ("punk.ska", ".ska$"),
     ]
 
     # A list of genres that should be skipped in the regex mapping
-    skip_list = ["post.rock", "future.jazz", "acid.jazz", "nu.jazz", "new.jazz", "hair.metal", "electro.punk", "dance.punk", "post.punk", "contemporary.post.punk"]
+    skip_list = [
+        "post.rock",
+        "future.jazz",
+        "acid.jazz",
+        "nu.jazz",
+        "new.jazz",
+        "downtempo.future.jazz",
+        "hair.metal",
+        "electro.punk",
+        "dance.punk",
+        "post.punk",
+        "contemporary.post.punk",
+        "synth.punk",
+    ]
 
     for j in reg_map:
         if j[0] not in genre_origin:
@@ -408,13 +439,38 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
                 diff_flag = True
 
     return genre_origin, diff_flag
+    
+
+# A function to check to see if a genre decade tag is the same as the decade the original year the album was released and removes it if it is
+def clean_years(genre_origin, original_date, diff_flag):
+
+    # A list of dacades to check
+    check_list = ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+    
+    print("--Comparing decades to orignal year and removing if matched.")
+    for i in genre_origin:
+        if i in check_list:
+            i_short = i[0:3]
+            original_date = str(original_date)
+            original_date_short = original_date[0:3]
+            if i_short == original_date_short:
+                genre_origin.remove(i)
+                diff_flag = True
+                print(f"--Removed {i} from list of genres.")
+            else:
+                print(f"--This album has was released in {original_date} but has music from the {i}.")
+                pass
+        else:
+            pass
+
+    return genre_origin, diff_flag
 
 
 # A function to remove genres that we don't want written to tags
 def remove_genre(genre_origin, diff_flag):
 
     # A list of genres that should be removed
-    remove_list = ["freely.available", "delete.this.tag", "various.artists"]
+    remove_list = ["freely.available", "hardcore.to.sort", "delete.this.tag", "various.artists", " ", "", None]
 
     print("--Looking for genres to remove.")
     for i in genre_origin:
@@ -481,6 +537,7 @@ def convert_string(genre_list, sep_char):
         ("Uk Bass", "UK Bass"),
         ("Hi Nrg", "Hi NRG"),
         ("Mpb", "MPB"),
+        ("Punk Ska", "Punk/Ska"),
     ]
 
     # capitalize styles that should be
@@ -537,6 +594,11 @@ def seperate_genres(genre_origin, directory):
         return final_genre, final_style
 
     else:
+        # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
+        if move_flag == True:
+            move_location(directory)
+        else:
+            pass
         print("--No genre could be mapped from the tags so no tags will be written to.")
         log_name = "missing_final_genre"
         log_message = "final genre tag not identified and missing"
@@ -592,8 +654,80 @@ def write_tags(directory, genre, style, album_name):
     log_outcomes(directory, log_name, log_message, log_list)
 
 
+# A function to build the location the files should be moved to
+def move_location(directory):
+    global genre_sort_directory
+    global move_list
+    global album_depth
+
+    print(f"MOVE SOURCE: {directory}")
+    # create target path
+
+    # get album name or artist-album name and create target path
+    path_parths = directory.split(os.sep)
+    if album_depth == 1:
+        album_name = path_parths[-1]
+        target = os.path.join(genre_sort_directory, album_name)
+        print(f"MOVE TARGET: {target}")
+    elif album_depth == 2:
+        artist_name = path_parths[-2]
+        album_name = path_parths[-1]
+        target = os.path.join(genre_sort_directory, artist_name, album_name)
+        print(f"MOVE TARGET: {target}")
+
+    print("--This should be moved to the Genre Sort folder and has been added to the move list.")
+    # make the pair a tupple
+    move_pair = (directory, target)
+    # adds the tupple to the list
+    move_list.append(move_pair)
+
+    """start_path = labels["start_path"]
+    if start_path != None:
+
+
+
+        # Sort the albums
+        if labels["original_label"] != None and labels["edition_label"] == None:
+            print("--This should be moved to the Label Sort folder.")
+            # make the pair a tupple
+            move_pair = (start_path, target)
+            # adds the tupple to the list
+            move_list.append(move_pair)
+        elif labels["original_cat"] != None and labels["edition_cat"] == None:
+            print("--This should be moved to the Label Sort folder.")
+            # make the pair a tupple
+            move_pair = (start_path, target)
+            # adds the tupple to the list
+            move_list.append(move_pair)
+        else:
+            print("--This should not be moved.")"""
+
+
+# A function to move albums to the correct folder
+def move_albums(move_list):
+    global move_count
+
+    # Loop through the list of albums to move
+    for i in move_list:
+
+        # Break each entry into a source and target
+        start_path = i[0]
+        target = i[1]
+
+        # Move them to the folders they belong in
+        print("")
+        print("Moving.")
+        print(f"--Source: {start_path}")
+        print(f"--Destination: {target}")
+        shutil.move(start_path, target)
+        print("Move completed.")
+        move_count += 1  # variable will increment every loop iteration
+
+
 # The main function that controls the flow of the script
 def main():
+    global move_flag
+    global move_list
 
     try:
         # intro text
@@ -618,7 +752,7 @@ def main():
                 # Load orgin genre
                 # open orgin file and merge in soundtrack
                 diff_flag = False
-                genre_origin, diff_flag = get_origin_genre(i, origin_location, album_name, diff_flag)
+                genre_origin, original_date, diff_flag = get_origin_genre(i, origin_location, album_name, diff_flag)
                 # Skip if origin file is missing
                 if genre_origin == []:
                     print("There was a missing origin file, check your logs, fix it and rerun.")
@@ -632,6 +766,8 @@ def main():
                     genre_origin, diff_flag = map_genre_reg(genre_origin, diff_flag)
                     # Map tags and assign missing ones using a list
                     genre_origin, diff_flag = map_genre_list(genre_origin, diff_flag)
+                    # Remove decade tags where the original album release date is in the decade
+                    genre_origin, diff_flag = clean_years(genre_origin, original_date, diff_flag)  
                     # Remove tags that should not be there
                     genre_origin, diff_flag = remove_genre(genre_origin, diff_flag)
                     # Write tags to origin file if any are added
@@ -650,11 +786,23 @@ def main():
                     else:
                         # Log missing genres
                         print("This album did not have a genre that mapped to anything. Please check the log and manually fix it.")
-
-                # Maybe move
-
             else:
                 print("No flac files.")
+
+        # Move the albums to the folders the need to be sorted into
+        if move_flag == True:
+        
+            # Change directory so the album directory can be moved and move them
+            os.chdir(log_directory)
+        
+            print("")
+            print("Part 2: Moving")
+            
+            # Move the albums
+            if move_list == []:
+                print("--No albums needed moving.")
+            else:
+                move_albums(move_list)
 
     finally:
         # Summary text

@@ -224,6 +224,7 @@ electronic,post.industrial
 electronic,aggrotech
 electronic,dungeon.synth
 electronic,modular.synth
+electronic,afx
 house,melodic.house.and.techno
 melodic.house,melodic.house.and.techno
 folk,freak.folk
@@ -344,6 +345,7 @@ pop,worldbeat
 pop,teen.pop
 pop,boy.band
 pop,pop.rap
+punk.ska,punk
 punk.ska,seapunk
 punk.ska,streetpunk
 punk.ska,mathcore
@@ -385,7 +387,6 @@ rock,post.hardcore
 rock,grunge
 rock,hair.metal
 rock,screamo
-rock,synthpop
 rock,rockabilly
 rock,rock.and.roll
 rock,jam.band
