@@ -33,7 +33,7 @@ genre_map_list = "M:\music-util\origin-scripts\Write-Genres\genre-map.csv"  # Se
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 2
+album_depth = 1
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
@@ -308,11 +308,11 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                     pass
                 else:
                     origin_genre = "genre.missing"
-                     # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
+                    # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
                     if move_flag == True:
                         move_location(directory)
                     else:
-                        pass                   
+                        pass
                 return origin_genre, original_date, diff_flag
         else:
             print("--You need to update your origin files with more metadata.")
@@ -439,14 +439,14 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
                 diff_flag = True
 
     return genre_origin, diff_flag
-    
+
 
 # A function to check to see if a genre decade tag is the same as the decade the original year the album was released and removes it if it is
 def clean_years(genre_origin, original_date, diff_flag):
 
     # A list of dacades to check
     check_list = ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
-    
+
     print("--Comparing decades to orignal year and removing if matched.")
     for i in genre_origin:
         if i in check_list:
@@ -767,7 +767,7 @@ def main():
                     # Map tags and assign missing ones using a list
                     genre_origin, diff_flag = map_genre_list(genre_origin, diff_flag)
                     # Remove decade tags where the original album release date is in the decade
-                    genre_origin, diff_flag = clean_years(genre_origin, original_date, diff_flag)  
+                    genre_origin, diff_flag = clean_years(genre_origin, original_date, diff_flag)
                     # Remove tags that should not be there
                     genre_origin, diff_flag = remove_genre(genre_origin, diff_flag)
                     # Write tags to origin file if any are added
@@ -791,13 +791,13 @@ def main():
 
         # Move the albums to the folders the need to be sorted into
         if move_flag == True:
-        
+
             # Change directory so the album directory can be moved and move them
             os.chdir(log_directory)
-        
+
             print("")
             print("Part 2: Moving")
-            
+
             # Move the albums
             if move_list == []:
                 print("--No albums needed moving.")
