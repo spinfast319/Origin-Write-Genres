@@ -21,6 +21,8 @@ import mutagen  # Imports functionality to get metadata from music files
 import csv  # Imports functionality to parse CSV files
 import re  # Imports functionality to use regular expressions
 import string  #  Imports functionality to manipulate strings
+import hashlib  # Imports the ability to make a hash
+import pickle  # Imports the ability to turn python objects into bytes
 
 
 #  Set your directories here
@@ -250,8 +252,10 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
     file_exists = check_file(directory)
     # check to see the origin file location variable exists
     location_exists = os.path.exists(origin_location)
+    # set up variables that will be pulled from origin file to avoid None type errors
     origin_genre = []
     original_date = None
+    release_type = None
 
     if location_exists == True:
         print("--The origin file location is valid.")
@@ -273,7 +277,8 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_list = None
             log_outcomes(directory, log_name, log_message, log_list)
             parse_error += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, diff_flag
+            return origin_genre, original_date, release_type, diff_flag
+
         # check to see if the origin file has the corect metadata
         if "Cover" in data.keys():
             print("--You are using the correct version of gazelle-origin.")
@@ -290,9 +295,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                 origin_genre = origin_genre.replace(" ", "")
                 # turn string into list
                 origin_genre = origin_genre.split(",")
-                # add soundtrack to list of genres in origin file list
-                origin_genre, diff_flag = merge_soundtrack(origin_genre, release_type, diff_flag)
-                return origin_genre, original_date, diff_flag
+                return origin_genre, original_date, release_type, diff_flag
             else:
                 # log the missing genre tag information in origin file
                 print("--There are no genre tags in the origin file.")
@@ -302,9 +305,10 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                 log_list = None
                 log_outcomes(directory, log_name, log_message, log_list)
                 missing_origin_genre += 1  # variable will increment every loop iteration
-                # add soundtrack to list of genres in origin file list
-                origin_genre, diff_flag = merge_soundtrack(origin_genre, release_type, diff_flag)
+
                 if origin_genre != None:
+                    pass
+                elif release_type == "Soundtrack":
                     pass
                 else:
                     origin_genre = "genre.missing"
@@ -313,7 +317,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                         move_location(directory)
                     else:
                         pass
-                return origin_genre, original_date, diff_flag
+                return origin_genre, original_date, release_type, diff_flag
         else:
             print("--You need to update your origin files with more metadata.")
             print("--Switch to the gazelle-origin fork here: https://github.com/spinfast319/gazelle-origin")
@@ -326,9 +330,9 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_outcomes(directory, log_name, log_message, log_list)
             origin_genre = []
             origin_old += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, diff_flag
+            return origin_genre, original_date, release_type, diff_flag
     else:
-        return origin_genre, original_date, diff_flag
+        return origin_genre, original_date, release_type, diff_flag
 
 
 # A function that adds a genre tag if one is missing and there is an associated style using regular expressions
@@ -379,7 +383,7 @@ def map_genre_reg(genre_origin, diff_flag):
                     if match:
                         genre_origin.append(j[0])
                         diff_flag = True
-                        print(f"--LOOK: Added {j[0]} to genre list because {i} was there.")
+                        print(f"----Added {j[0]} to genre list because {i} was there.")
 
     #  turn list into set to get rid of duplicates
     genre_origin = set(genre_origin)
@@ -408,7 +412,7 @@ def map_genre_list(genre_origin, diff_flag):
             if i[1] in genre_origin:
                 genre_origin.append(i[0])
                 diff_flag = True
-                print(f"--LOOK: Added {i[0]} to genre list because {i[1]} was there. ")
+                print(f"----Added {i[0]} to genre list because {i[1]} was there. ")
 
     return genre_origin, diff_flag
 
@@ -502,22 +506,23 @@ def write_origin(all_genres, origin_location):
     # Open origin.yaml file
     with open(origin_location, encoding="utf-8") as f:
         data = yaml.load(f)
-        print("--Opened yaml")
+        print("----Opened yaml")
 
     # Update origin.yaml key value for tags
     data["Tags"] = genre_string
-    print("--Updated yaml")
+    print("----Updated yaml")
 
     # Write new origin.yaml file
     with open(origin_location, "w", encoding="utf-8") as f:
         yaml.dump(data, f)
-        print("--Wrote yaml")
+        print("----Wrote yaml")
         # move the count to writing the tags later
 
 
 # A function to turn a list of genres into a nicely formated string
 def convert_string(genre_list, sep_char):
 
+    # Alphabetize list
     genre_list.sort()
 
     if sep_char == ",":
@@ -750,18 +755,28 @@ def main():
             is_flac = flac_check(i)
             if is_flac == True:
                 # Load orgin genre
-                # open orgin file and merge in soundtrack
+                # open orgin file
                 diff_flag = False
-                genre_origin, original_date, diff_flag = get_origin_genre(i, origin_location, album_name, diff_flag)
+                genre_origin, original_date, release_type, diff_flag = get_origin_genre(i, origin_location, album_name, diff_flag)
+
                 # Skip if origin file is missing
                 if genre_origin == []:
-                    print("There was a missing origin file, check your logs, fix it and rerun.")
+                    print("There was a missing or malformed origin file, check your logs, fix it and rerun.")
                     pass
                 # Skip if there are no tags in the origin file
                 elif genre_origin == "genre.missing":
                     print("There was no genre in the origin file.")
                     pass
                 else:
+                    # create a hash of the genre_origine list so we can track it and see if it changes and write changes back to the file at the end
+                    print("--Creating a hash of the starting origin genre list.")
+                    # alphabetize list
+                    if genre_origin != None:
+                        genre_origin.sort()
+                    genre_hash_start = hashlib.md5(pickle.dumps(genre_origin))
+
+                    # add soundtrack to list of genres in origin file list
+                    genre_origin, diff_flag = merge_soundtrack(genre_origin, release_type, diff_flag)
                     # Map tags and assign missing ones using regular expressions
                     genre_origin, diff_flag = map_genre_reg(genre_origin, diff_flag)
                     # Map tags and assign missing ones using a list
@@ -770,13 +785,28 @@ def main():
                     genre_origin, diff_flag = clean_years(genre_origin, original_date, diff_flag)
                     # Remove tags that should not be there
                     genre_origin, diff_flag = remove_genre(genre_origin, diff_flag)
+
+                    # check if the orgin tag has been updated and write updated tags to the origin file if it has
+                    # create a hash of the origin_genre list so we can track it and see if it changes and write changes back to the file at the end
+                    # alphabetize list
+                    if genre_origin != None:
+                        genre_origin.sort()
+                    genre_hash_end = hashlib.md5(pickle.dumps(genre_origin))
+                    print("--Comparing original origin genre list to final genre list.")
+                    print(f"----Genre Hash Start: {genre_hash_start.hexdigest()}")
+                    print(f"----Genre Hash End  : {genre_hash_end.hexdigest()}")
+
                     # Write tags to origin file if any are added
-                    if diff_flag == True:
+                    if genre_hash_start.hexdigest() != genre_hash_end.hexdigest():
+                        print("--Genre list has been updated.")
+                        print("--Writing genre to origin file.")
                         write_origin(genre_origin, origin_location)
                         written_genre_string = ", ".join(genre_origin)
                         print(f"--Final genres writen to origin file -> {written_genre_string}")
                     else:
-                        print("--No new genre tags to add to origin genre")
+                        print("--Genre list has note been updated.")
+                        print("--No new genre tags to add to origin genre.")
+
                     # Make one list of genres and one of styles
                     genre, style = seperate_genres(genre_origin, i)
                     if genre != []:
