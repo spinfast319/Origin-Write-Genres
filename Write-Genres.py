@@ -239,7 +239,7 @@ def _represent_none(self, data):
 
 
 #  A function that gets the directory and then opens the origin file and extracts the needed variables
-def get_origin_genre(directory, origin_location, album_name, diff_flag):
+def get_origin_genre(directory, origin_location, album_name):
     global parse_error
     global origin_old
     global bad_missing
@@ -277,7 +277,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_list = None
             log_outcomes(directory, log_name, log_message, log_list)
             parse_error += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, release_type, diff_flag
+            return origin_genre, original_date, release_type
 
         # check to see if the origin file has the corect metadata
         if "Cover" in data.keys():
@@ -295,7 +295,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                 origin_genre = origin_genre.replace(" ", "")
                 # turn string into list
                 origin_genre = origin_genre.split(",")
-                return origin_genre, original_date, release_type, diff_flag
+                return origin_genre, original_date, release_type
             else:
                 # log the missing genre tag information in origin file
                 print("--There are no genre tags in the origin file.")
@@ -317,7 +317,7 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
                         move_location(directory)
                     else:
                         pass
-                return origin_genre, original_date, release_type, diff_flag
+                return origin_genre, original_date, release_type
         else:
             print("--You need to update your origin files with more metadata.")
             print("--Switch to the gazelle-origin fork here: https://github.com/spinfast319/gazelle-origin")
@@ -330,13 +330,13 @@ def get_origin_genre(directory, origin_location, album_name, diff_flag):
             log_outcomes(directory, log_name, log_message, log_list)
             origin_genre = []
             origin_old += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, release_type, diff_flag
+            return origin_genre, original_date, release_type
     else:
-        return origin_genre, original_date, release_type, diff_flag
+        return origin_genre, original_date, release_type
 
 
 # A function that adds a genre tag if one is missing and there is an associated style using regular expressions
-def map_genre_reg(genre_origin, diff_flag):
+def map_genre_reg(genre_origin):
 
     print("--Mapping genre's with regex")
     # A list that holds pairs of genres and their associated regular expression
@@ -382,7 +382,6 @@ def map_genre_reg(genre_origin, diff_flag):
                     match = re.search(j[1], i)
                     if match:
                         genre_origin.append(j[0])
-                        diff_flag = True
                         print(f"----Added {j[0]} to genre list because {i} was there.")
 
     #  turn list into set to get rid of duplicates
@@ -390,11 +389,11 @@ def map_genre_reg(genre_origin, diff_flag):
     #  turn set back into list to not break things
     genre_origin = list(genre_origin)
 
-    return genre_origin, diff_flag
+    return genre_origin
 
 
 # A function that adds a genre tag if one is missing and there is an associated style using a list of paired genre/styles
-def map_genre_list(genre_origin, diff_flag):
+def map_genre_list(genre_origin):
     global genre_map_list
 
     # Open CSV of alias mappings, create list of tuples
@@ -411,14 +410,13 @@ def map_genre_list(genre_origin, diff_flag):
         else:
             if i[1] in genre_origin:
                 genre_origin.append(i[0])
-                diff_flag = True
                 print(f"----Added {i[0]} to genre list because {i[1]} was there. ")
 
-    return genre_origin, diff_flag
+    return genre_origin
 
 
 # A function to add soundtrack to list of genres in origin file list
-def merge_soundtrack(genre_origin, release_type, diff_flag):
+def merge_soundtrack(genre_origin, release_type):
 
     print(f"--Checking release type.")
     print(f"--This is a {release_type}")
@@ -429,8 +427,7 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
             genre_origin = [release_type]
             print(f"--Adding Soundtrack to the genre tags in origin file")
             genre_origin_string = ", ".join(genre_origin)
-            print(f"-Origin genre tags are -> {genre_origin_string}")
-            diff_flag = True
+            print(f"----Origin genre tags are -> {genre_origin_string}")
         else:
             if release_type in genre_origin:
                 pass
@@ -440,13 +437,12 @@ def merge_soundtrack(genre_origin, release_type, diff_flag):
                 genre_origin.append(release_type)
                 genre_origin_string = ", ".join(genre_origin)
                 print(f"--Origin genre tags are -> {genre_origin_string}")
-                diff_flag = True
 
-    return genre_origin, diff_flag
+    return genre_origin
 
 
 # A function to check to see if a genre decade tag is the same as the decade the original year the album was released and removes it if it is
-def clean_years(genre_origin, original_date, diff_flag):
+def clean_years(genre_origin, original_date):
 
     # A list of dacades to check
     check_list = ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
@@ -459,7 +455,6 @@ def clean_years(genre_origin, original_date, diff_flag):
             original_date_short = original_date[0:3]
             if i_short == original_date_short:
                 genre_origin.remove(i)
-                diff_flag = True
                 print(f"--Removed {i} from list of genres.")
             else:
                 print(f"--This album has was released in {original_date} but has music from the {i}.")
@@ -467,11 +462,11 @@ def clean_years(genre_origin, original_date, diff_flag):
         else:
             pass
 
-    return genre_origin, diff_flag
+    return genre_origin
 
 
 # A function to remove genres that we don't want written to tags
-def remove_genre(genre_origin, diff_flag):
+def remove_genre(genre_origin):
 
     # A list of genres that should be removed
     remove_list = ["freely.available", "hardcore.to.sort", "delete.this.tag", "various.artists", " ", "", None]
@@ -481,12 +476,11 @@ def remove_genre(genre_origin, diff_flag):
         for j in remove_list:
             if i == j:
                 genre_origin.remove(j)
-                diff_flag = True
                 print(f"--Removed {j} from list of genres.")
             else:
                 pass
 
-    return genre_origin, diff_flag
+    return genre_origin
 
 
 # A function to write the full genre list back to the origin file
@@ -686,27 +680,6 @@ def move_location(directory):
     # adds the tupple to the list
     move_list.append(move_pair)
 
-    """start_path = labels["start_path"]
-    if start_path != None:
-
-
-
-        # Sort the albums
-        if labels["original_label"] != None and labels["edition_label"] == None:
-            print("--This should be moved to the Label Sort folder.")
-            # make the pair a tupple
-            move_pair = (start_path, target)
-            # adds the tupple to the list
-            move_list.append(move_pair)
-        elif labels["original_cat"] != None and labels["edition_cat"] == None:
-            print("--This should be moved to the Label Sort folder.")
-            # make the pair a tupple
-            move_pair = (start_path, target)
-            # adds the tupple to the list
-            move_list.append(move_pair)
-        else:
-            print("--This should not be moved.")"""
-
 
 # A function to move albums to the correct folder
 def move_albums(move_list):
@@ -756,8 +729,7 @@ def main():
             if is_flac == True:
                 # Load orgin genre
                 # open orgin file
-                diff_flag = False
-                genre_origin, original_date, release_type, diff_flag = get_origin_genre(i, origin_location, album_name, diff_flag)
+                genre_origin, original_date, release_type = get_origin_genre(i, origin_location, album_name)
 
                 # Skip if origin file is missing
                 if genre_origin == []:
@@ -776,15 +748,15 @@ def main():
                     genre_hash_start = hashlib.md5(pickle.dumps(genre_origin))
 
                     # add soundtrack to list of genres in origin file list
-                    genre_origin, diff_flag = merge_soundtrack(genre_origin, release_type, diff_flag)
+                    genre_origin = merge_soundtrack(genre_origin, release_type)
                     # Map tags and assign missing ones using regular expressions
-                    genre_origin, diff_flag = map_genre_reg(genre_origin, diff_flag)
+                    genre_origin = map_genre_reg(genre_origin)
                     # Map tags and assign missing ones using a list
-                    genre_origin, diff_flag = map_genre_list(genre_origin, diff_flag)
+                    genre_origin = map_genre_list(genre_origin)
                     # Remove decade tags where the original album release date is in the decade
-                    genre_origin, diff_flag = clean_years(genre_origin, original_date, diff_flag)
+                    genre_origin = clean_years(genre_origin, original_date)
                     # Remove tags that should not be there
-                    genre_origin, diff_flag = remove_genre(genre_origin, diff_flag)
+                    genre_origin = remove_genre(genre_origin)
 
                     # check if the orgin tag has been updated and write updated tags to the origin file if it has
                     # create a hash of the origin_genre list so we can track it and see if it changes and write changes back to the file at the end
