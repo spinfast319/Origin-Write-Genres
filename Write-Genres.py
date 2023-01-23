@@ -52,7 +52,7 @@ good_missing = 0
 bad_missing = 0
 parse_error = 0
 origin_old = 0
-missing_origin_genre = 0
+missing_genre_origin = 0
 missing_genre = 0
 missing_tags = 0
 track_count = 0
@@ -106,7 +106,7 @@ def summary_text():
     global bad_missing
     global good_missing
     global origin_old
-    global missing_origin_genre
+    global missing_genre_origin
     global track_count
     global missing_final_genre
     global move_count
@@ -123,8 +123,8 @@ def summary_text():
     print(f"--{error_status}: There were {origin_old} origin files that do not have the needed metadata and need to be updated.")
     error_status = error_exists(bad_missing)
     print(f"--{error_status}: There were {bad_missing} folders missing an origin files that should have had them.")
-    error_status = error_exists(missing_origin_genre)
-    print(f"--{error_status}: There were {missing_origin_genre} folders missing genre tags in their origin files.")
+    error_status = error_exists(missing_genre_origin)
+    print(f"--{error_status}: There were {missing_genre_origin} folders missing genre tags in their origin files.")
     error_status = error_exists(missing_final_genre)
     print(f"--{error_status}: There were {missing_final_genre} albums where a genere tag could not be mapped and was missing. Fix these manually.")
     error_status = error_exists(good_missing)
@@ -239,11 +239,11 @@ def _represent_none(self, data):
 
 
 #  A function that gets the directory and then opens the origin file and extracts the needed variables
-def get_origin_genre(directory, origin_location, album_name):
+def get_genre_origin(directory, origin_location, album_name):
     global parse_error
     global origin_old
     global bad_missing
-    global missing_origin_genre
+    global missing_genre_origin
 
     print(f"--Getting metadata for {album_name}")
     print(f"--From: {origin_location}")
@@ -253,7 +253,7 @@ def get_origin_genre(directory, origin_location, album_name):
     # check to see the origin file location variable exists
     location_exists = os.path.exists(origin_location)
     # set up variables that will be pulled from origin file to avoid None type errors
-    origin_genre = []
+    genre_origin = []
     original_date = None
     release_type = None
 
@@ -277,7 +277,7 @@ def get_origin_genre(directory, origin_location, album_name):
             log_list = None
             log_outcomes(directory, log_name, log_message, log_list)
             parse_error += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, release_type
+            return genre_origin, original_date, release_type
 
         # check to see if the origin file has the corect metadata
         if "Cover" in data.keys():
@@ -285,39 +285,39 @@ def get_origin_genre(directory, origin_location, album_name):
             print("--Origin tags found.")
 
             # turn the data into variable
-            origin_genre = data["Tags"]
+            genre_origin = data["Tags"]
             release_type = data["Release type"]
             original_date = data["Original year"]
 
-            if origin_genre != None:
-                print(f"--Origin genre tags are -> {origin_genre}")
+            if genre_origin != None:
+                print(f"--Origin genre tags are -> {genre_origin}")
                 # remove spaces in comma delimited string
-                origin_genre = origin_genre.replace(" ", "")
+                genre_origin = genre_origin.replace(" ", "")
                 # turn string into list
-                origin_genre = origin_genre.split(",")
-                return origin_genre, original_date, release_type
+                genre_origin = genre_origin.split(",")
+                return genre_origin, original_date, release_type
             else:
                 # log the missing genre tag information in origin file
                 print("--There are no genre tags in the origin file.")
                 print("--Logged missing genre tag in origin file.")
-                log_name = "missing_origin_genre"
+                log_name = "missing_genre_origin"
                 log_message = "genre tag missing in origin file"
                 log_list = None
                 log_outcomes(directory, log_name, log_message, log_list)
-                missing_origin_genre += 1  # variable will increment every loop iteration
+                missing_genre_origin += 1  # variable will increment every loop iteration
 
-                if origin_genre != None:
+                if genre_origin != None:
                     pass
                 elif release_type == "Soundtrack":
                     pass
                 else:
-                    origin_genre = "genre.missing"
+                    genre_origin = "genre.missing"
                     # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
                     if move_flag == True:
                         move_location(directory)
                     else:
                         pass
-                return origin_genre, original_date, release_type
+                return genre_origin, original_date, release_type
         else:
             print("--You need to update your origin files with more metadata.")
             print("--Switch to the gazelle-origin fork here: https://github.com/spinfast319/gazelle-origin")
@@ -328,11 +328,11 @@ def get_origin_genre(directory, origin_location, album_name):
             log_message = "origin file out of date"
             log_list = None
             log_outcomes(directory, log_name, log_message, log_list)
-            origin_genre = []
+            genre_origin = []
             origin_old += 1  # variable will increment every loop iteration
-            return origin_genre, original_date, release_type
+            return genre_origin, original_date, release_type
     else:
-        return origin_genre, original_date, release_type
+        return genre_origin, original_date, release_type
 
 
 # A function that adds a genre tag if one is missing and there is an associated style using regular expressions
@@ -477,6 +477,25 @@ def remove_genre(genre_origin):
             if i == j:
                 genre_origin.remove(j)
                 print(f"--Removed {j} from list of genres.")
+            else:
+                pass
+
+    return genre_origin
+
+
+# A function to remove pop as a genre if it is indie.pop
+def strict_pop(genre_origin):
+
+    # A list of types of pop stules that should not have pop as a genre
+    remove_list = ["indie.pop"]
+    
+    print("--Looking for styles of pop that don't fit in the pop genre.")
+    for i in genre_origin:
+        for j in remove_list:
+            if i == j:
+                if "pop" in genre_origin:
+                    genre_origin.remove("pop")
+                    print(f"--Removed pop from list of genres.")
             else:
                 pass
 
@@ -729,7 +748,7 @@ def main():
             if is_flac == True:
                 # Load orgin genre
                 # open orgin file
-                genre_origin, original_date, release_type = get_origin_genre(i, origin_location, album_name)
+                genre_origin, original_date, release_type = get_genre_origin(i, origin_location, album_name)
 
                 # Skip if origin file is missing
                 if genre_origin == []:
@@ -757,9 +776,11 @@ def main():
                     genre_origin = clean_years(genre_origin, original_date)
                     # Remove tags that should not be there
                     genre_origin = remove_genre(genre_origin)
+                    # Remove pop as a genre if indie.pop
+                    genre_origin = strict_pop(genre_origin)
 
                     # check if the orgin tag has been updated and write updated tags to the origin file if it has
-                    # create a hash of the origin_genre list so we can track it and see if it changes and write changes back to the file at the end
+                    # create a hash of the genre_origin list so we can track it and see if it changes and write changes back to the file at the end
                     # alphabetize list
                     if genre_origin != None:
                         genre_origin.sort()
