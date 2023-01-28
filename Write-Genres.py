@@ -58,6 +58,7 @@ missing_tags = 0
 track_count = 0
 missing_final_genre = 0
 move_count = 0
+flac_folder_count = 0
 
 # identifies album directory level
 path_segments = album_directory.split(os.sep)
@@ -110,9 +111,10 @@ def summary_text():
     global track_count
     global missing_final_genre
     global move_count
+    global flac_folder_count
 
     print("")
-    print(f"This script wrote tags for {track_count} tracks on {count} albums out of {total_count} albums.")
+    print(f"This script wrote tags for {track_count} tracks in {count} folders out of {flac_folder_count} folders for {total_count} albums.")
     if move_count != []:
         print(f"The script moved {move_count} albums that were missing final genres so you can fix them manually.")
     print("This script looks for potential missing files or errors. The following messages outline whether any were found.")
@@ -182,11 +184,13 @@ def level_check(directory):
 
 # A function to check whether a directory has flac and should be checked further
 def flac_check(directory):
+    global flac_folder_count
 
     # Loop through the directory and see if any file is a flac
     for fname in os.listdir(directory):
         if fname.endswith(".flac"):
             print("--There are flac in this directory.")
+            flac_folder_count += 1  # variable will increment every loop iteration
             return True
 
     print("--There are no flac in this directory.")
@@ -371,6 +375,7 @@ def map_genre_reg(genre_origin):
         "post.punk",
         "contemporary.post.punk",
         "synth.punk",
+        "disco.punk",
     ]
 
     for j in reg_map:
@@ -455,9 +460,9 @@ def clean_years(genre_origin, original_date):
             original_date_short = original_date[0:3]
             if i_short == original_date_short:
                 genre_origin.remove(i)
-                print(f"--Removed {i} from list of genres.")
+                print(f"----Removed {i} from list of genres due to the album being released in {original_date}.")
             else:
-                print(f"--This album has was released in {original_date} but has music from the {i}.")
+                print(f"----This album has was released in {original_date} but has music from the {i}.")
                 pass
         else:
             pass
@@ -476,7 +481,7 @@ def remove_genre(genre_origin):
         for j in remove_list:
             if i == j:
                 genre_origin.remove(j)
-                print(f"--Removed {j} from list of genres.")
+                print(f"----Removed {j} from list of genres.")
             else:
                 pass
 
@@ -487,8 +492,8 @@ def remove_genre(genre_origin):
 def strict_pop(genre_origin):
 
     # A list of types of pop stules that should not have pop as a genre
-    remove_list = ["indie.pop"]
-    
+    remove_list = ["indie.pop", "indie.rock", "indie"]
+
     print("--Looking for styles of pop that don't fit in the pop genre.")
     for i in genre_origin:
         for j in remove_list:
@@ -498,6 +503,73 @@ def strict_pop(genre_origin):
                     print(f"--Removed pop from list of genres.")
             else:
                 pass
+
+    return genre_origin
+
+
+# A function to add non.music as a genre if it is missing and the correct styles are present
+def add_non_music(genre_origin):
+
+    # A list of all the genre tags
+    total_genre = [
+        "blues",
+        "childrens.music",
+        "classical",
+        "country",
+        "electronic",
+        "folk",
+        "hip.hop",
+        "jazz",
+        "lounge",
+        "metal",
+        "noise",
+        "non.music",
+        "pop",
+        "post.rock",
+        "punk.ska",
+        "rock",
+        "rhythm.and.blues",
+        "soundtrack",
+        "world.music",
+    ]
+
+    # A list of genres that can be associated with non.music
+    non_music_list = [
+        "comedy",
+        "spoken.word",
+        "stand.up",
+        "special.effects",
+        "movie.effects",
+        "special.effects",
+        "foley",
+        "poetry",
+        "birds",
+        "bird.songs",
+        "bird.sounds",
+        "bird.calls",
+        "nature",
+        "ocean",
+        "waves",
+        "rain",
+        "thunder",
+        "fire",
+        "animal.sounds",
+        "whale.song",
+        "whales",
+        "frogs",
+        "insects",
+        "humour",
+    ]
+
+    print("--Looking for albums of non-music and assigning that as the genre.")
+    if any(x in genre_origin for x in total_genre):
+        pass
+    else:
+        if any(y in genre_origin for y in non_music_list):
+            genre_origin.append("non.music")
+            print("----Added non.music to the list of genres.")
+        else:
+            pass
 
     return genre_origin
 
@@ -529,7 +601,6 @@ def write_origin(all_genres, origin_location):
     with open(origin_location, "w", encoding="utf-8") as f:
         yaml.dump(data, f)
         print("----Wrote yaml")
-        # move the count to writing the tags later
 
 
 # A function to turn a list of genres into a nicely formated string
@@ -778,6 +849,8 @@ def main():
                     genre_origin = remove_genre(genre_origin)
                     # Remove pop as a genre if indie.pop
                     genre_origin = strict_pop(genre_origin)
+                    # Add non.music as a genre if no other genre is present and the right other tags are there
+                    genre_origin = add_non_music(genre_origin)
 
                     # check if the orgin tag has been updated and write updated tags to the origin file if it has
                     # create a hash of the genre_origin list so we can track it and see if it changes and write changes back to the file at the end
