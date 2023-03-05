@@ -24,18 +24,20 @@ import string  #  Imports functionality to manipulate strings
 import hashlib  # Imports the ability to make a hash
 import pickle  # Imports the ability to turn python objects into bytes
 
+#  Set the location of the local directory
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
 
 #  Set your directories here
-album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
+album_directory = "M:\PROCESS"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
-genre_sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missing genres to so you can manually fix them
-genre_map_list = "M:\music-util\origin-scripts\Write-Genres\genre-map.csv"  # Set the location of the genre-map.csv file.
+sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missing genres to so you can manually fix them
 
 # Set whether you are using nested folders or have all albums in one directory here
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 1
+album_depth = 2
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
@@ -43,6 +45,7 @@ album_depth = 1
 # The folders will be logged either way so you can always see which albums were missing final genre tags.
 move_flag = True
 move_list = []
+
 
 # Establishes the counters for completed albums and missing origin files
 count = 0
@@ -70,7 +73,7 @@ album_location_check = segments + album_depth
 def log_outcomes(directory, log_name, message, log_list):
     global log_directory
 
-    script_name = "Origin Write Tags Script"
+    script_name = "Write Genres Script"
     today = datetime.datetime.now()
     log_name = f"{log_name}.txt"
     album_name = directory.split(os.sep)
@@ -336,6 +339,14 @@ def get_genre_origin(directory, origin_location, album_name):
             origin_old += 1  # variable will increment every loop iteration
             return genre_origin, original_date, release_type
     else:
+        # log the missing origin file folders that are not likely supposed to be missing
+        print("--An origin file is missing from a folder that should have one.")
+        print("--Logged missing origin file.")
+        log_name = "bad-missing-origin"
+        log_message = "origin file is missing from a folder that should have one"
+        log_list = None
+        log_outcomes(directory, log_name, log_message, log_list)
+        bad_missing += 1  # variable will increment every loop iteration    
         return genre_origin, original_date, release_type
 
 
@@ -399,10 +410,9 @@ def map_genre_reg(genre_origin):
 
 # A function that adds a genre tag if one is missing and there is an associated style using a list of paired genre/styles
 def map_genre_list(genre_origin):
-    global genre_map_list
 
     # Open CSV of alias mappings, create list of tuples
-    with open(genre_map_list, encoding="utf-8") as f:
+    with open(os.path.join(__location__, 'genre-map.csv'), encoding="utf-8") as f:
         reader = csv.reader(f)
         genre_map = list(tuple(line) for line in reader)
 
@@ -474,7 +484,22 @@ def clean_years(genre_origin, original_date):
 def remove_genre(genre_origin):
 
     # A list of genres that should be removed
-    remove_list = ["freely.available", "hardcore.to.sort", "delete.this.tag", "various.artists", " ", "", None]
+    remove_list = [
+        "freely.available", 
+        "hardcore.to.sort", 
+        "other", 
+        "misc", 
+        "miscellaneous", 
+        "delete.this.tag", 
+        "unknown", 
+        "various.artists",
+        "танцевальная.музыка",
+        "альтернативная.музыка",
+        "злектронная.музыкаа",
+        " ", 
+        "", 
+        None
+    ]
 
     print("--Looking for genres to remove.")
     for i in genre_origin:
@@ -624,6 +649,7 @@ def convert_string(genre_list, sep_char):
         ("DJent", "Djent"),
         ("Uk Garage", "UK Garage"),
         ("Uk Bass", "UK Bass"),
+        ("Uk Funky", "UK Funky"),
         ("Hi Nrg", "Hi NRG"),
         ("Mpb", "MPB"),
         ("Punk Ska", "Punk/Ska"),
@@ -685,15 +711,15 @@ def seperate_genres(genre_origin, directory):
     else:
         # Pass the directory to the move_location function so it can be added to the move_list and moved if the move flag is turned on
         if move_flag == True:
+            print("--No genre could be mapped from the tags so no tags will be written to.")
+            log_name = "missing_final_genre"
+            log_message = "final genre tag not identified and missing"
+            log_list = None
+            log_outcomes(directory, log_name, log_message, log_list)
+            missing_final_genre += 1  # variable will increment every loop iteration
             move_location(directory)
         else:
             pass
-        print("--No genre could be mapped from the tags so no tags will be written to.")
-        log_name = "missing_final_genre"
-        log_message = "final genre tag not identified and missing"
-        log_list = None
-        log_outcomes(directory, log_name, log_message, log_list)
-        missing_final_genre += 1  # variable will increment every loop iteration
 
         return final_genre, final_style
 
@@ -745,7 +771,7 @@ def write_tags(directory, genre, style, album_name):
 
 # A function to build the location the files should be moved to
 def move_location(directory):
-    global genre_sort_directory
+    global sort_directory
     global move_list
     global album_depth
 
@@ -756,12 +782,12 @@ def move_location(directory):
     path_parths = directory.split(os.sep)
     if album_depth == 1:
         album_name = path_parths[-1]
-        target = os.path.join(genre_sort_directory, album_name)
+        target = os.path.join(sort_directory, album_name)
         print(f"MOVE TARGET: {target}")
     elif album_depth == 2:
         artist_name = path_parths[-2]
         album_name = path_parths[-1]
-        target = os.path.join(genre_sort_directory, artist_name, album_name)
+        target = os.path.join(sort_directory, artist_name, album_name)
         print(f"MOVE TARGET: {target}")
 
     print("--This should be moved to the Genre Sort folder and has been added to the move list.")
