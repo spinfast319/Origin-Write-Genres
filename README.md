@@ -41,7 +41,7 @@ pip install ruamel.yaml
 
 6) Edit the script where it says _Set whether you want to move folders that have missing final genre tags_ to specify whether you want to have ths script move albums missing genre tags to a different directory
 
-    A. If you want the script to move albums then set this value to True (the default)
+    A. If you want the script to move albums then set this value to True (the default)   
     B. If you do not want the albums to be moved set this value to False (they will still be logged)
 
 7) Use your terminal to navigate to the directory the script is in and run the script from the command line.  When it finishes it will output how many albums it wrote tags to.
