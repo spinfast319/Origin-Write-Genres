@@ -29,7 +29,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 
 #  Set your directories here
-album_directory = "M:\PROCESS"  # Which directory do you want to start with?
+album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
 sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missing genres to so you can manually fix them
 
@@ -37,7 +37,7 @@ sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missin
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 2
+album_depth = 1
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
@@ -346,7 +346,7 @@ def get_genre_origin(directory, origin_location, album_name):
         log_message = "origin file is missing from a folder that should have one"
         log_list = None
         log_outcomes(directory, log_name, log_message, log_list)
-        bad_missing += 1  # variable will increment every loop iteration    
+        bad_missing += 1  # variable will increment every loop iteration
         return genre_origin, original_date, release_type
 
 
@@ -380,6 +380,7 @@ def map_genre_reg(genre_origin):
         "nu.jazz",
         "new.jazz",
         "downtempo.future.jazz",
+        "chiptune.jazz",
         "hair.metal",
         "electro.punk",
         "dance.punk",
@@ -387,6 +388,7 @@ def map_genre_reg(genre_origin):
         "contemporary.post.punk",
         "synth.punk",
         "disco.punk",
+        "gypsy.punk",
     ]
 
     for j in reg_map:
@@ -412,7 +414,7 @@ def map_genre_reg(genre_origin):
 def map_genre_list(genre_origin):
 
     # Open CSV of alias mappings, create list of tuples
-    with open(os.path.join(__location__, 'genre-map.csv'), encoding="utf-8") as f:
+    with open(os.path.join(__location__, "genre-map.csv"), encoding="utf-8") as f:
         reader = csv.reader(f)
         genre_map = list(tuple(line) for line in reader)
 
@@ -485,20 +487,20 @@ def remove_genre(genre_origin):
 
     # A list of genres that should be removed
     remove_list = [
-        "freely.available", 
-        "hardcore.to.sort", 
-        "other", 
-        "misc", 
-        "miscellaneous", 
-        "delete.this.tag", 
-        "unknown", 
+        "freely.available",
+        "hardcore.to.sort",
+        "other",
+        "misc",
+        "miscellaneous",
+        "delete.this.tag",
+        "unknown",
         "various.artists",
         "танцевальная.музыка",
         "альтернативная.музыка",
         "злектронная.музыкаа",
-        " ", 
-        "", 
-        None
+        " ",
+        "",
+        None,
     ]
 
     print("--Looking for genres to remove.")
@@ -652,6 +654,7 @@ def convert_string(genre_list, sep_char):
         ("Uk Funky", "UK Funky"),
         ("Hi Nrg", "Hi NRG"),
         ("Mpb", "MPB"),
+        ("Nwobhm", "NWOBHM"),
         ("Punk Ska", "Punk/Ska"),
     ]
 
