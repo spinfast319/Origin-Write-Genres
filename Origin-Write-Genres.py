@@ -31,7 +31,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 #  Set your directories here
 album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
 log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
-sort_directory = "M:\PROCESS-SORT\Genre Sort"  # Directory to move albums missing genres to so you can manually fix them
+sort_directory = "M:\PROCESS-LOGS\Logs"  # Directory to move albums missing genres to so you can manually fix them
 
 # Set whether you are using nested folders or have all albums in one directory here
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
