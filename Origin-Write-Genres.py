@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Write Genres
 # author: hypermodified
 # This python script loops through a directory, opens the origin file and maps tags to genres and styles and writes them to the vorbis GENRE and STYLE comments.
