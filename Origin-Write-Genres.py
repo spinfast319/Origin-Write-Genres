@@ -31,15 +31,15 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 
 #  Set your directories here
-album_directory = "M:\Python Test Environment\Albums"  # Which directory do you want to start with?
-log_directory = "M:\Python Test Environment\Logs"  # Which directory do you want the log in?
-sort_directory = "M:\PROCESS-LOGS\Logs"  # Directory to move albums missing genres to so you can manually fix them
+album_directory = "M:\PROCESS"  # Which directory do you want to start with?
+log_directory = "M:\PROCESS-LOGS\Logs"  # Which directory do you want the log in?
+sort_directory = "M:\PROCESS-SORT\Missing Genre"  # Directory to move albums missing genres to so you can manually fix them
 
 # Set whether you are using nested folders or have all albums in one directory here
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 1
+album_depth = 2
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
