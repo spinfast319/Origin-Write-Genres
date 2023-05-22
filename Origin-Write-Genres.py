@@ -193,7 +193,7 @@ def flac_check(directory):
 
     # Loop through the directory and see if any file is a flac
     for fname in os.listdir(directory):
-        if fname.endswith(".flac"):
+        if fname.lower().endswith(".flac"):
             print("--There are flac in this directory.")
             flac_folder_count += 1  # variable will increment every loop iteration
             return True
@@ -747,7 +747,7 @@ def write_tags(directory, genre, style, album_name):
     if genre != None:
         # Loop through the directory and rename flac files
         for fname in os.listdir(directory):
-            if fname.endswith(".flac"):
+            if fname.lower().endswith(".flac"):
                 tag_metadata = mutagen.File(fname)
                 print(f"----Track Name: {fname}")
                 # log track that was retagged
