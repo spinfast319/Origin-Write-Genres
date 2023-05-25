@@ -26,6 +26,8 @@ import string  #  Imports functionality to manipulate strings
 import hashlib  # Imports the ability to make a hash
 import pickle  # Imports the ability to turn python objects into bytes
 
+import origin_script_library as osl  # Imports common code used across all origin scripts
+
 #  Set the location of the local directory
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -653,6 +655,7 @@ def convert_string(genre_list, sep_char):
         ("DJent", "Djent"),
         ("Uk Garage", "UK Garage"),
         ("Uk Bass", "UK Bass"),
+        ("Uk House", "UK House"),
         ("Uk Funky", "UK Funky"),
         ("Hi Nrg", "Hi NRG"),
         ("Mpb", "MPB"),
@@ -821,7 +824,7 @@ def move_albums(move_list):
         shutil.move(start_path, target)
         print("Move completed.")
         move_count += 1  # variable will increment every loop iteration
-
+        
 
 # The main function that controls the flow of the script
 def main():
@@ -834,9 +837,8 @@ def main():
         print("Join me, and together...")
         print("")
 
-        # Get all the subdirectories of album_directory recursively and store them in a list:
-        directories = [os.path.abspath(x[0]) for x in os.walk(album_directory)]
-        directories.remove(os.path.abspath(album_directory))  # If you don't want your main directory included
+        # Get all the subdirectories of album_directory recursively and store them in a list
+        directories = osl.set_directory(album_directory)
 
         #  Run a loop that goes into each directory identified in the list and runs the genre and style writing process
         for i in directories:
