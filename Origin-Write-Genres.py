@@ -41,7 +41,7 @@ sort_directory = "M:\PROCESS-SORT\Missing Genre"  # Directory to move albums mis
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 2
+album_depth = 1
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
@@ -651,6 +651,7 @@ def convert_string(genre_list, sep_char):
         ("Idm", "IDM"),
         ("Edm", "EDM"),
         ("Ebm", "EBM"),
+        ("Asmr", "ASMR"),
         ("Dj", "DJ"),
         ("DJent", "Djent"),
         ("Uk Garage", "UK Garage"),
