@@ -41,7 +41,7 @@ sort_directory = "M:\PROCESS-SORT\Missing Genre"  # Directory to move albums mis
 # If you have all your ablums in one music directory Music/Album_name then set this value to 1
 # If you have all your albums nest in a Music/Artist/Album style of pattern set this value to 2
 # The default is 1
-album_depth = 1
+album_depth = 2
 
 # Set whether you want to move folders that have missing final genre tags to a folder so they can be dealt with manually later# creates the list of albums that need to be moved post sorting
 # If you want to move your albums set move_flag to True
@@ -386,6 +386,7 @@ def map_genre_reg(genre_origin):
         "downtempo.future.jazz",
         "chiptune.jazz",
         "hair.metal",
+        "funk.metal",
         "electro.punk",
         "dance.punk",
         "post.punk",
@@ -393,6 +394,8 @@ def map_genre_reg(genre_origin):
         "synth.punk",
         "disco.punk",
         "gypsy.punk",
+        "indian.classical",
+        "cinematic.classical",
     ]
 
     for j in reg_map:
