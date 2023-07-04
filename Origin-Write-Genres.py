@@ -501,6 +501,10 @@ def remove_genre(genre_origin):
         "miscellaneous",
         "delete.this.tag",
         "unknown",
+        "remixes",
+        "remix",
+        "ins",
+        "z.ramalho",
         "various.artists",
         "танцевальная.музыка",
         "альтернативная.музыка",
@@ -592,7 +596,7 @@ def add_non_music(genre_origin):
         "whales",
         "frogs",
         "insects",
-        "humour",
+        "humor",
     ]
 
     print("--Looking for albums of non-music and assigning that as the genre.")
@@ -661,10 +665,17 @@ def convert_string(genre_list, sep_char):
         ("Uk Bass", "UK Bass"),
         ("Uk House", "UK House"),
         ("Uk Funky", "UK Funky"),
+        ("Uk Hip Hop", "UK Hip Hop"),
+        ("Uk Drill", "UK Drill"),
+        ("Female Mc", "Female MC"),
         ("Hi Nrg", "Hi NRG"),
         ("Mpb", "MPB"),
         ("Nwobhm", "NWOBHM"),
         ("Punk Ska", "Punk/Ska"),
+        ("Aacm", "AACM"),
+        ("Diy", "DIY"),
+        ("Tv Music", "TV Music"),
+        ("Lsdj", "LSDj"),
     ]
 
     # capitalize styles that should be
